@@ -5,7 +5,7 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/YOUR_USERNAME/devops-monitoring.git'
+                git 'https://github.com/02fe23bcs060-commits/devops-monitoring.git'
             }
         }
 
@@ -15,11 +15,10 @@ pipeline {
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Run Container') {
             steps {
                 bat 'docker run -d -p 5000:5000 devops-monitoring'
             }
         }
-
     }
 }
