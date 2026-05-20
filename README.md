@@ -1,3 +1,4 @@
+
 # Automated Monitoring and Alerting System
 
 ## Project Overview
@@ -128,3 +129,7 @@ Grafana is used to visualize:
 ## Conclusion
 
 This project demonstrates DevOps automation using monitoring, CI/CD pipeline creation, containerization, and cloud deployment technologies.
+
+# devops-monitoring
+Automated Monitoring and Alerting System using DevOps Tools
+
