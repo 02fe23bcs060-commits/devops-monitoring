@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+
+  backend:
+    build: .
+    container_name: monitor-backend
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: monitor-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

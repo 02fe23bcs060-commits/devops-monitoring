@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DevOps Monitoring Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  height: 100vh;
+  background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
+  background-size: 600% 600%;
+  animation: gradientBG 10s ease infinite;
+  color: white;
+}
+
+@keyframes gradientBG {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+
+h1 {
+  text-align: center;
+  padding: 20px;
+}
+
+.container {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.card {
+  backdrop-filter: blur(15px);
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 20px;
+  width: 250px;
+  margin: 10px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0,255,255,0.5);
+}
+
+.bar-bg {
+  background: #333;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.bar {
+  height: 10px;
+  width: 0%;
+  border-radius: 10px;
+}
+
+#cpuBar { background: cyan; }
+#memBar { background: orange; }
+
+.status {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.green { color: #00ffcc; }
+.yellow { color: #ffcc00; }
+.red { color: #ff4d4d; }
+
+.chart-container {
+  width: 80%;
+  margin: auto;
+}
+
+.alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: red;
+  padding: 15px;
+  border-radius: 10px;
+  display: none;
+}
+
+table {
+  width: 80%;
+  margin: 20px auto;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+th, td {
+  border: 1px solid white;
+  padding: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🚀 DevOps Monitoring Dashboard</h1>
+
+<div class="container">
+  <div class="card">
+    <h2>CPU Usage</h2>
+    <p id="cpu">--%</p>
+    <div class="bar-bg"><div id="cpuBar" class="bar"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Memory Usage</h2>
+    <p id="memory">--%</p>
+    <div class="bar-bg"><div id="memBar" class="bar"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Uptime</h2>
+    <p id="uptime">--</p>
+  </div>
+
+  <div class="card">
+    <h2>Status</h2>
+    <p id="status" class="status">Loading...</p>
+  </div>
+</div>
+
+<div class="chart-container">
+  <canvas id="cpuChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="memChart"></canvas>
+</div>
+
+<div class="alert" id="alertBox"></div>
+
+<h2 style="text-align:center;">📊 System Logs</h2>
+
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>CPU</th>
+<th>Memory</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="logTable"></tbody>
+</table>
+
+<script>
+
+const API_URL = "http://backend:5000/metrics";
+
+let cpuData = [];
+let memData = [];
+let labels = [];
+
+const cpuChart = new Chart(document.getElementById("cpuChart"), {
+  type: "line",
+  data: {
+    labels: labels,
+    datasets: [{
+      label: "CPU %",
+      data: cpuData,
+      borderColor: "cyan",
+      fill: false
+    }]
+  }
+});
+
+const memChart = new Chart(document.getElementById("memChart"), {
+  type: "line",
+  data: {
+    labels: labels,
+    datasets: [{
+      label: "Memory %",
+      data: memData,
+      borderColor: "orange",
+      fill: false
+    }]
+  }
+});
+
+async function fetchData() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    const cpu = data.cpu;
+    const mem = data.memory;
+    const uptime = data.uptime || "N/A";
+
+    document.getElementById("cpu").innerText = cpu + "%";
+    document.getElementById("memory").innerText = mem + "%";
+    document.getElementById("uptime").innerText = uptime;
+
+    // Progress Bars
+    document.getElementById("cpuBar").style.width = cpu + "%";
+    document.getElementById("memBar").style.width = mem + "%";
+
+    // Status Logic
+    let statusText = "Healthy";
+    let statusClass = "green";
+
+    if (cpu > 85 || mem > 90) {
+      statusText = "Critical";
+      statusClass = "red";
+      showAlert("🚨 High Resource Usage!");
+    } else if (cpu > 60 || mem > 75) {
+      statusText = "Warning";
+      statusClass = "yellow";
+    }
+
+    const statusEl = document.getElementById("status");
+    statusEl.innerText = statusText;
+    statusEl.className = "status " + statusClass;
+
+    // Charts
+    const time = new Date().toLocaleTimeString();
+    labels.push(time);
+    cpuData.push(cpu);
+    memData.push(mem);
+
+    if (labels.length > 10) {
+      labels.shift();
+      cpuData.shift();
+      memData.shift();
+    }
+
+    cpuChart.update();
+    memChart.update();
+
+    // Logs
+    const row = `<tr>
+      <td>${time}</td>
+      <td>${cpu}%</td>
+      <td>${mem}%</td>
+      <td>${statusText}</td>
+    </tr>`;
+
+    const table = document.getElementById("logTable");
+    table.innerHTML = row + table.innerHTML;
+
+  } catch (err) {
+    console.log("Error:", err);
+  }
+}
+
+function showAlert(message) {
+  const alertBox = document.getElementById("alertBox");
+  alertBox.innerText = message;
+  alertBox.style.display = "block";
+
+  setTimeout(() => {
+    alertBox.style.display = "none";
+  }, 3000);
+}
+
+setInterval(fetchData, 2000);
+
+</script>
+
+</body>
+</html>

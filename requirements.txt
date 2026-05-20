@@ -1,0 +1,4 @@
+flask
+flask-cors
+psutil
+prometheus_client
